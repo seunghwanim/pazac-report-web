@@ -2,9 +2,9 @@
 // 실연결 시 CONNECTED = true로 바꾸고 URL/KEY 입력.
 // CONNECTED = false 면 localStorage에 저장되어 전체 흐름을 바로 테스트할 수 있다.
 
-const CONNECTED = false;
-const SUPABASE_URL = '';   // 'https://xxxx.supabase.co'
-const SUPABASE_KEY = '';   // anon public key
+const CONNECTED = true;
+const SUPABASE_URL = 'https://hxxqbpslwakjbdpwbalo.supabase.co';  // /rest/v1 제외 베이스
+const SUPABASE_KEY = 'sb_publishable_nz9oXHBT--fD2ssRs2LDXA_gJiMjlk-';  // publishable (공개용) 키
 
 const DRAFT_TABLE  = 'report_drafts';
 const REPORT_TABLE = 'reports';
