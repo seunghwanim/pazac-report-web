@@ -22,7 +22,11 @@ export async function loadTemplate(container, type) {
   if (!tpl) { container.innerHTML = '<p style="padding:24px;color:#999">알 수 없는 보고 종류입니다.</p>'; return null; }
 
   // 1) HTML 마크업 fetch해서 inject
-  const html = await fetch(tpl.html).then(r => r.text());
+  //    fetch는 문서(form.html) 기준으로 상대경로를 풀기 때문에, GitHub Pages처럼
+  //    하위 경로(/pazac-report-web/)에 배포되면 경로가 어긋난다.
+  //    import.meta.url(=router.js 위치) 기준으로 절대 URL을 만들어 일관성을 맞춘다.
+  const htmlUrl = new URL(tpl.html, import.meta.url);
+  const html = await fetch(htmlUrl).then(r => r.text());
   container.innerHTML = html;
 
   // 2) JS 모듈 동적 import → init() 호출
