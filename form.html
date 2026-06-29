@@ -13,6 +13,7 @@
   <div class="top">
     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px">
       <button class="back-btn" onclick="history.back()">← 뒤로</button>
+      <button class="back-btn" id="loadDraftBtn">📂 임시저장 불러오기</button>
       <span class="type-label" id="typeLabel"></span>
     </div>
     <h1 id="formTitle">보고</h1>
@@ -21,6 +22,7 @@
       <div class="fld"><label>보고일</label><input type="date" id="rdate"></div>
       <div class="fld"><label>보고 시간</label><input type="time" id="rtime"></div>
       <div class="fld"><label>작성자</label><input id="author" placeholder="작성자"></div>
+      <div class="fld full" id="confirmerFld" style="display:none"><label>확인자</label><input id="confirmer" placeholder="확인자 이름"></div>
     </div>
   </div>
 
@@ -30,8 +32,9 @@
 
 <!-- 제출 바 -->
 <div class="submit-bar" id="submitBar">
-  <div class="inner">
-    <button class="submit-btn" id="submitBtn">보고 제출</button>
+  <div class="inner" style="display:flex; gap:8px">
+    <button class="submit-btn" id="saveDraftBtn">임시 저장</button>
+    <button class="submit-btn" id="finalSubmitBtn" style="display:none; background:var(--green, #2f8f4e)">✅ 최종 제출</button>
   </div>
 </div>
 
@@ -47,6 +50,14 @@
   </div>
 </div>
 
+<!-- 임시저장 불러오기 시트 -->
+<div class="ov" id="ovDraft">
+  <div class="sheet">
+    <div class="sh"><b>임시저장 불러오기</b><button id="closeDraft">✕</button></div>
+    <div class="sc" id="draftList"></div>
+  </div>
+</div>
+
 <!-- 재료 추가 모달 (주방 오픈 전용, template이 필요시 활성화) -->
 <div class="ov" id="ovAdd">
   <div class="sheet">
@@ -59,76 +70,163 @@
 
 <script type="module">
   import { getParams, loadTemplate, getTemplateInfo } from './core/router.js';
-  import { submitReport } from './core/submit.js';
-  import { BRANCHES, BRANCH_ORDER } from './data/branches.js';
-  import { toast } from './core/ui.js';
+  import { saveDraft, listDrafts, loadDraft, confirmReport, purgeExpiredDrafts } from './core/submit.js';
+  import { BRANCH_ORDER } from './data/branches.js';
+  import { esc, toast } from './core/ui.js';
 
   const params = getParams();
-  const tplInfo = getTemplateInfo(params.type);
 
-  // 헤더 채우기
-  document.getElementById('typeLabel').textContent = tplInfo?.label || '';
-  document.getElementById('formTitle').textContent = (tplInfo?.label || '') + ' 보고';
+  // DOM 참조
+  const branchSel = document.getElementById('branch');
+  const rdateEl   = document.getElementById('rdate');
+  const rtimeEl   = document.getElementById('rtime');
+  const authorEl  = document.getElementById('author');
+  const container = document.getElementById('tplContainer');
+
+  // 상태: 현재 보고 종류, 불러온 draft id, 활성 템플릿 모듈
+  let currentType   = params.type;
+  let currentDraftId = null;
+  let mod = null;
 
   // 지점 select 채우기
-  const branchSel = document.getElementById('branch');
   BRANCH_ORDER.forEach(b => {
     const o = document.createElement('option');
     o.textContent = b;
     branchSel.appendChild(o);
   });
-  branchSel.value = params.branch;
-  document.getElementById('rdate').value = params.date;
-  document.getElementById('rtime').value = params.time;
-  document.getElementById('author').value = params.author;
 
-  // 제출 바 표시
+  // 헤더 초기값
+  branchSel.value = params.branch;
+  rdateEl.value   = params.date;
+  rtimeEl.value   = params.time;
+  authorEl.value  = params.author;
   document.getElementById('submitBar').classList.add('visible');
 
-  // template 로드 및 init
-  const container = document.getElementById('tplContainer');
-  const mod = await loadTemplate(container, params.type);
-
-  if (mod?.init) {
-    mod.init({
-      branch: branchSel,
-      rdate:  document.getElementById('rdate'),
-      author: document.getElementById('author'),
-    });
+  // 헤더 라벨/제목 갱신
+  function applyTypeLabel(type) {
+    const info = getTemplateInfo(type);
+    document.getElementById('typeLabel').textContent = info?.label || '';
+    document.getElementById('formTitle').textContent = (info?.label || '') + ' 보고';
   }
 
-  // 제출 버튼
-  document.getElementById('submitBtn').addEventListener('click', async () => {
-    if (!mod?.buildPayload) return;
-    const payload = mod.buildPayload({
+  // 헤더 값 → payload 헤더 객체
+  function header() {
+    return {
       branch: branchSel.value,
-      report_date: document.getElementById('rdate').value,
-      report_time: document.getElementById('rtime').value || null,
-      shift_type: params.type,
-      author: document.getElementById('author').value || null,
-    });
+      report_date: rdateEl.value,
+      report_time: rtimeEl.value || null,
+      shift_type: currentType,
+      author: authorEl.value || null,
+    };
+  }
 
-    const result = await submitReport(payload);
+  // 템플릿 로드 + init (필요 시 hydrate)
+  async function mountTemplate(type, data) {
+    currentType = type;
+    applyTypeLabel(type);
+    mod = await loadTemplate(container, type);
+    if (mod?.init) mod.init({ branch: branchSel, rdate: rdateEl, author: authorEl });
+    if (data && mod?.hydrate) mod.hydrate(data);
+  }
+
+  // 확인 모드 진입 (확인자 이름 + 최종 제출 노출)
+  function enterConfirmMode() {
+    document.getElementById('confirmerFld').style.display = '';
+    document.getElementById('finalSubmitBtn').style.display = '';
+  }
+
+  // 확인자 입력 시 에러 표시 해제
+  document.getElementById('confirmer').addEventListener('input', e =>
+    e.target.classList.remove('field-error'));
+
+  // ── 초기 마운트 (작성자 모드) ──
+  purgeExpiredDrafts();  // 24시간 지난 임시저장 정리
+  await mountTemplate(params.type);
+
+  // ── 임시 저장 ──
+  document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+    if (!mod?.buildPayload) return;
+    const data = mod.buildPayload(header());
+    const res  = await saveDraft({ id: currentDraftId, ...header(), data });
+    if (res.ok) { currentDraftId = res.id; toast('임시 저장됨'); }
+    else { toast('저장 실패'); }
+  });
+
+  // ── 불러오기 시트 ──
+  const ovDraft = document.getElementById('ovDraft');
+  document.getElementById('loadDraftBtn').addEventListener('click', async () => {
+    const list = await listDrafts({ branch: branchSel.value, date: rdateEl.value, type: currentType });
+    const box  = document.getElementById('draftList');
+    if (!list.length) {
+      box.innerHTML = '<p style="padding:16px;color:#999;text-align:center">이 보고 종류의 임시저장이 없습니다.<br>(지점·날짜·종류 기준)</p>';
+    } else {
+      box.innerHTML = list.map(d =>
+        `<button class="draft-item" data-id="${d.id}">
+           <b>${esc(getTemplateInfo(d.shift_type)?.label || d.shift_type)}</b>
+           <span>${esc(d.author || '작성자 미상')} · ${d.report_date} ${d.report_time || ''}</span>
+         </button>`).join('');
+      box.querySelectorAll('.draft-item').forEach(b =>
+        b.addEventListener('click', () => pickDraft(b.dataset.id)));
+    }
+    ovDraft.classList.add('show');
+  });
+
+  async function pickDraft(id) {
+    const draft = await loadDraft(id);
+    if (!draft) { toast('불러오기 실패'); return; }
+    ovDraft.classList.remove('show');
+
+    currentDraftId = draft.id;
+    branchSel.value = draft.branch;
+    rdateEl.value   = draft.report_date;
+    rtimeEl.value   = draft.report_time || '';
+    authorEl.value  = draft.author || '';
+
+    await mountTemplate(draft.shift_type, draft.data);
+    enterConfirmMode();
+    toast('불러옴 · 검토 후 최종 제출');
+  }
+
+  // ── 최종 제출 (확인자) ──
+  document.getElementById('finalSubmitBtn').addEventListener('click', async () => {
+    if (!mod?.buildPayload) return;
+    const confirmerEl = document.getElementById('confirmer');
+    const confirmer = confirmerEl.value.trim();
+    if (!confirmer) {
+      confirmerEl.classList.add('field-error');
+      confirmerEl.focus();
+      toast('확인자 이름을 입력하세요');
+      return;
+    }
+    confirmerEl.classList.remove('field-error');
+
+    const data  = mod.buildPayload(header());  // 확인자가 수정했을 수 있으니 현재 폼 기준
+    const draft = { id: currentDraftId, ...header(), data };
+    const res   = await confirmReport({ draft, confirmedBy: confirmer });
+
     const box = document.getElementById('saveBox');
-    if (result.ok) {
+    if (res.ok) {
       box.className = 'savebox ok';
-      box.innerHTML = '<b>저장됨</b> · reports 테이블';
+      box.innerHTML = res.simulated
+        ? '<b>최종 제출됨 (로컬 테스트)</b> · Supabase 연결 시 reports 테이블에 저장됩니다'
+        : '<b>최종 제출됨</b> · reports 테이블';
     } else {
       box.className = 'savebox warn';
-      box.innerHTML = '<b>모의 저장</b> · Supabase 미연결 — 아래 형태로 reports 에 insert 됩니다';
+      box.innerHTML = '<b>제출 실패</b> · ' + esc(JSON.stringify(res.error || {}));
     }
-    document.getElementById('jsonOut').textContent = JSON.stringify(result.row, null, 2);
+    document.getElementById('jsonOut').textContent = JSON.stringify(res.row, null, 2);
     document.getElementById('ovSub').classList.add('show');
   });
 
-  // 모달 닫기
-  document.getElementById('closeSub').onclick = () => document.getElementById('ovSub').classList.remove('show');
-  document.getElementById('closeAdd').onclick = () => document.getElementById('ovAdd').classList.remove('show');
+  // ── 모달 닫기 ──
+  document.getElementById('closeSub').onclick   = () => document.getElementById('ovSub').classList.remove('show');
+  document.getElementById('closeAdd').onclick   = () => document.getElementById('ovAdd').classList.remove('show');
+  document.getElementById('closeDraft').onclick = () => ovDraft.classList.remove('show');
   document.getElementById('copyJson').onclick = () => {
     navigator.clipboard?.writeText(document.getElementById('jsonOut').textContent)
       .then(() => toast('복사됨'), () => toast('복사 실패'));
   };
-  ['ovSub','ovAdd'].forEach(id => {
+  ['ovSub','ovAdd','ovDraft'].forEach(id => {
     document.getElementById(id).addEventListener('click', e => {
       if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
     });

@@ -30,10 +30,20 @@ export function bindTagInput(input, arr, renderFn) {
   });
 }
 
-// 태그 목록 렌더링
+// 태그 목록 렌더링 (단어 등 짧은 항목 — 칩 형태)
 export function renderTags(container, arr, onRemove) {
   container.innerHTML = arr.map((n, i) =>
     `<span class="tag">${esc(n)}<button data-i="${i}" aria-label="삭제">✕</button></span>`
+  ).join('');
+  container.querySelectorAll('button').forEach(b =>
+    b.onclick = () => { onRemove(+b.dataset.i); }
+  );
+}
+
+// 문장형 메모 목록 렌더링 (한 줄에 한 문장 — 긴 문장 대응)
+export function renderNoteList(container, arr, onRemove) {
+  container.innerHTML = arr.map((n, i) =>
+    `<div class="noteitem"><span>${esc(n)}</span><button data-i="${i}" aria-label="삭제">✕</button></div>`
   ).join('');
   container.querySelectorAll('button').forEach(b =>
     b.onclick = () => { onRemove(+b.dataset.i); }

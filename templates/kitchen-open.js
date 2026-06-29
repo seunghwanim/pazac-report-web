@@ -2,7 +2,7 @@
 
 import { ITEMS, SCALE, NONE_DEFAULT, CAT_ORDER } from '../data/kitchen.js';
 import { BRANCHES } from '../data/branches.js';
-import { esc, toast, bindTagInput, renderTags } from '../core/ui.js';
+import { esc, toast, bindTagInput, renderNoteList } from '../core/ui.js';
 
 // ── 상태 ──────────────────────────────────────────────
 let roster = [];
@@ -292,25 +292,71 @@ function closeMenus(except) {
   }
 }
 
+// 특이사항 문장 목록 다시 그림 (개별 삭제 포함)
+function reRenderNotes() {
+  renderNoteList(document.getElementById('koNotesList'), notes, i => { notes.splice(i, 1); reRenderNotes(); });
+}
+
 function loadRoster(branch) {
   roster = (BRANCHES[branch]?.roster || []).slice();
-  st = {}; added = new Set(); agedPlans = {}; notes = [];
+  st = {}; added = new Set(); agedPlans = {};
+  notes.length = 0;  // bindTagInput 참조 유지를 위해 in-place 비움
   roster.forEach(n => st[n] = initItem(n));
   render(); renderAged();
-  renderTags(document.getElementById('koNotesTags'), notes, i => { notes.splice(i,1); renderTags(document.getElementById('koNotesTags'), notes, arguments.callee); });
+  reRenderNotes();
 }
 
 // ── 공개 API ──────────────────────────────────────────
 export function init({ branch, rdate, author }) {
   rdateEl = rdate;
-  bindTagInput(document.getElementById('koNotesInput'), notes, () =>
-    renderTags(document.getElementById('koNotesTags'), notes, i => {
-      notes.splice(i, 1);
-      renderTags(document.getElementById('koNotesTags'), notes, arguments.callee);
-    })
-  );
+  bindTagInput(document.getElementById('koNotesInput'), notes, reRenderNotes);
   bindEvents();
   loadRoster(branch.value);
+}
+
+// 저장된 payload(buildPayload 결과)를 폼에 되채움 — init() 이후 호출
+export function hydrate(data) {
+  if (!data) return;
+
+  roster = (data.items || []).map(it => it.item_name).filter(n => ITEMS[n]);
+  st = {};
+  (data.items || []).forEach(it => {
+    const name = it.item_name, meta = ITEMS[name];
+    if (!meta) return;
+    if (it.status === 'none') { st[name] = { status:'none', lots:[newLot(name)] }; return; }
+
+    const lots = (it.lots || []).map(l => {
+      if (meta.special) return {
+        prodDate: l.prod_date || '', pan: l.quantity || '',
+        ferm: l.fermentation || '', cold: l.cold || '', note: l.note || '',
+      };
+      const av = {};
+      (meta.attrs || []).forEach(a => av[a] = attrDefault(a));
+      (l.issues || []).forEach(iss => { av[iss.attr] = iss.value; });
+      return {
+        prodDate: l.prod_date || '', qty: l.quantity || '',
+        cond: l.condition_pct ?? 100, attrVals: av, notes: (l.notes || []).slice(),
+      };
+    });
+    st[name] = { status: it.status || 'good', lots: lots.length ? lots : [newLot(name)] };
+  });
+
+  // 지점 기본 로스터에 없는 항목 = 작성자가 추가한 항목
+  const branchRoster = BRANCHES[document.getElementById('branch')?.value]?.roster || [];
+  added = new Set(roster.filter(n => !branchRoster.includes(n)));
+
+  notes.length = 0; notes.push(...(data.general_notes || []));  // in-place 교체
+
+  // 처리 계획 복원 (생산일로 로트 인덱스 매칭)
+  agedPlans = {};
+  (data.aged_inventory || []).forEach(a => {
+    const idx = (st[a.item_name]?.lots || []).findIndex(l => l.prodDate === a.prod_date);
+    if (idx >= 0) agedPlans[agedKey(a.item_name, idx, a.prod_date)] = a.plan || '';
+  });
+
+  render();
+  renderAged();
+  reRenderNotes();
 }
 
 export function buildPayload(header) {

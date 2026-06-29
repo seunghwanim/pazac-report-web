@@ -99,6 +99,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline
 .tag{display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:6px 8px 6px 11px; border-radius:8px; background:#EFF3F0; border:1px solid #DCE4DF; color:var(--ink)}
 .tag button{border:none; background:none; color:var(--muted); font-size:13px; padding:0; line-height:1}
 .noteinput{width:100%; height:40px; border:1px solid var(--line2); border-radius:9px; padding:0 11px; background:var(--surface)}
+.notelist{display:flex; flex-direction:column; gap:6px; margin-bottom:8px}
+.noteitem{display:flex; align-items:flex-start; gap:8px; background:var(--surface); border:1px solid var(--line2); border-radius:9px; padding:8px 11px}
+.noteitem span{flex:1; font-size:14px; line-height:1.45; white-space:pre-wrap; word-break:break-word}
+.noteitem button{border:none; background:none; color:var(--muted); font-size:13px}
 textarea{width:100%; min-height:54px; border:1px solid var(--line2); border-radius:9px; padding:9px 10px; resize:vertical; background:var(--surface)}
 
 /* ── 섹션 박스 ── */
@@ -170,6 +174,13 @@ textarea{width:100%; min-height:54px; border:1px solid var(--line2); border-radi
 pre{background:#1B2F26; color:#D8E8DF; padding:13px; border-radius:10px; font-size:12px; overflow:auto; margin:0; line-height:1.55;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; word-break:break-word}
 .copy-btn{width:100%; height:44px; border:1px solid var(--line2); background:var(--surface); border-radius:10px; font-size:14px; font-weight:600; margin-top:12px; color:var(--ink)}
+
+/* ── 임시저장 불러오기 / 확인자 검증 ── */
+.draft-item{display:flex; flex-direction:column; gap:3px; align-items:flex-start; width:100%; text-align:left;
+  border:1px solid var(--line2); background:var(--surface); border-radius:10px; padding:11px 13px; margin-bottom:8px; color:var(--ink)}
+.draft-item b{font-size:14px; font-weight:600}
+.draft-item span{font-size:12px; color:var(--muted)}
+.field-error{border-color:#d9534f !important; outline:2px solid #d9534f !important; outline-offset:1px}
 
 /* ── 토스트 ── */
 .toast{position:fixed; bottom:84px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;

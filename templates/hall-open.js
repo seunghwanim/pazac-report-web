@@ -1,12 +1,12 @@
 // templates/hall-open.js
 
 import { POSITIONS } from '../data/hall.js';
-import { esc, bindTagInput, renderTags } from '../core/ui.js';
+import { esc, bindTagInput, renderTags, renderNoteList } from '../core/ui.js';
 
 let people = [];
 let checks = { upselling: null, review_bread: null };
 let upsellItems = [];
-let notes  = [];
+let notes = [];
 
 function renderPeople() {
   const L = document.getElementById('hoPeople'); L.innerHTML = '';
@@ -29,22 +29,23 @@ function renderChecks() {
   });
 }
 
-function reRenderNotes() {
-  renderTags(document.getElementById('hoNotesTags'), notes, i => { notes.splice(i,1); reRenderNotes(); });
-}
-
 function reRenderUpsell() {
   renderTags(document.getElementById('hoUpsellTags'), upsellItems, i => { upsellItems.splice(i,1); reRenderUpsell(); });
+}
+
+function reRenderNotes() {
+  renderNoteList(document.getElementById('hoNotesList'), notes, i => { notes.splice(i,1); reRenderNotes(); });
 }
 
 export function init() {
   people = [{ name:'', roles:[] }];
   checks = { upselling:null, review_bread:null };
   upsellItems = [];
-  notes  = [];
+  notes = [];
   renderPeople();
   renderChecks();
   reRenderUpsell();
+  reRenderNotes();
 
   document.getElementById('hoPeople').addEventListener('click', e => {
     const t = e.target.closest('[data-act]'); if (!t) return;
@@ -77,6 +78,25 @@ export function init() {
 
   bindTagInput(document.getElementById('hoUpsellInput'), upsellItems, reRenderUpsell);
   bindTagInput(document.getElementById('hoNotesInput'), notes, reRenderNotes);
+}
+
+// 저장된 payload(buildPayload 결과)를 폼에 되채움 — init() 이후 호출
+export function hydrate(data) {
+  if (!data) return;
+  people = (data.positions && data.positions.length)
+    ? data.positions.map(p => ({ name: p.name || '', roles: (p.roles || []).slice() }))
+    : [{ name:'', roles:[] }];
+  checks = {
+    upselling:    data.checks?.upselling ?? null,
+    review_bread: data.checks?.review_bread ?? null,
+  };
+  // bindTagInput이 배열 참조를 붙들고 있으므로 재할당하지 말고 in-place로 교체
+  upsellItems.length = 0; upsellItems.push(...(data.upsell_items || []));
+  notes.length = 0;       notes.push(...(data.general_notes || []));
+  renderPeople();
+  renderChecks();
+  reRenderUpsell();
+  reRenderNotes();
 }
 
 export function buildPayload(header) {

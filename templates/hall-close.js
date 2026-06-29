@@ -1,7 +1,7 @@
 // templates/hall-close.js
 
 import { ORDER_ITEMS, UNIT_MAP, DEFAULT_UNIT } from '../data/hall.js';
-import { esc, bindTagInput, renderTags } from '../core/ui.js';
+import { esc, bindTagInput, renderNoteList } from '../core/ui.js';
 
 let bev   = [{ item:'', qty:'', unit:'' }];
 let con   = [{ item:'', qty:'', unit:'' }];
@@ -43,7 +43,7 @@ function renderTasks() {
 }
 
 function reRenderNotes() {
-  renderTags(document.getElementById('hcNotesTags'), notes, i => { notes.splice(i,1); reRenderNotes(); });
+  renderNoteList(document.getElementById('hcNotesList'), notes, i => { notes.splice(i,1); reRenderNotes(); });
 }
 
 function getArr(grp) { return grp === 'bev' ? bev : con; }
@@ -109,6 +109,25 @@ export function init() {
   });
 
   bindTagInput(document.getElementById('hcNotesInput'), notes, reRenderNotes);
+}
+
+// 저장된 payload를 폼에 되채움 — init() 이후 호출
+export function hydrate(data) {
+  if (!data) return;
+  const fromOrders = arr => (arr || []).map(r => ({ item: r.item || '', qty: r.qty ?? '', unit: r.unit || '' }));
+  bev = fromOrders(data.orders?.beverage);
+  con = fromOrders(data.orders?.consumables);
+  if (!bev.length) bev = [{ item:'', qty:'', unit:'' }];
+  if (!con.length) con = [{ item:'', qty:'', unit:'' }];
+  invDone = !!data.inventory_updated;
+  tasks = (data.opening_tasks || []).map(t => ({ text: t.task || '', done: !!t.done }));
+  // bindTagInput이 notes 참조를 붙들고 있으므로 in-place로 교체
+  notes.length = 0; notes.push(...(data.handover_notes || []));
+  orderRows(bev, 'bev');
+  orderRows(con, 'con');
+  renderInv();
+  renderTasks();
+  reRenderNotes();
 }
 
 export function buildPayload(header) {
