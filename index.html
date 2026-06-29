@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>보고</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+<div class="home-head">
+  <h1>보고</h1>
+  <p>지점과 보고 종류를 선택하세요</p>
+</div>
+
+<div class="home-body">
+  <div class="home-sect">
+    <label>지점</label>
+    <select id="selBranch"></select>
+  </div>
+  <div class="home-sect">
+    <label>보고일</label>
+    <input type="date" id="selDate">
+  </div>
+  <div class="home-sect">
+    <label>작성자</label>
+    <input type="text" id="selAuthor" placeholder="이름 입력">
+  </div>
+  <div class="home-sect">
+    <label>보고 종류</label>
+    <div class="type-grid" id="typeGrid">
+      <button type="button" class="type-card" data-type="kitchen_open">
+        <span class="tc-icon">☀️</span>
+        <div class="tc-title">주방 오픈</div>
+        <div class="tc-desc">재료 선도·컨디션 확인</div>
+      </button>
+      <button type="button" class="type-card" data-type="kitchen_close">
+        <span class="tc-icon">🌙</span>
+        <div class="tc-title">주방 마감</div>
+        <div class="tc-desc">잔여 재고·보관 상태</div>
+      </button>
+      <button type="button" class="type-card" data-type="hall_open">
+        <span class="tc-icon">🪑</span>
+        <div class="tc-title">홀 오픈</div>
+        <div class="tc-desc">포지션·특이사항</div>
+      </button>
+      <button type="button" class="type-card" data-type="hall_close">
+        <span class="tc-icon">🔒</span>
+        <div class="tc-title">홀 마감</div>
+        <div class="tc-desc">발주·인수인계</div>
+      </button>
+    </div>
+  </div>
+
+  <button class="home-start" id="startBtn" disabled>보고 시작</button>
+</div>
+
+<script type="module">
+  import { BRANCHES, BRANCH_ORDER } from './data/branches.js';
+
+  // 지점 옵션 채우기
+  const sel = document.getElementById('selBranch');
+  BRANCH_ORDER.forEach(b => {
+    const o = document.createElement('option');
+    o.textContent = b;
+    sel.appendChild(o);
+  });
+
+  // 날짜 기본값
+  document.getElementById('selDate').value = new Date().toISOString().slice(0, 10);
+
+  // 보고 종류 선택
+  let selectedType = '';
+  document.getElementById('typeGrid').querySelectorAll('.type-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.type-card').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      selectedType = card.dataset.type;
+      document.getElementById('startBtn').disabled = false;
+    });
+  });
+
+  // 보고 시작 → form.html로 이동 (URL 파라미터로 상태 전달)
+  document.getElementById('startBtn').addEventListener('click', () => {
+    if (!selectedType) return;
+    const params = new URLSearchParams({
+      type:   selectedType,
+      branch: document.getElementById('selBranch').value,
+      date:   document.getElementById('selDate').value,
+      author: document.getElementById('selAuthor').value,
+    });
+    location.href = `form.html?${params}`;
+  });
+</script>
+</body>
+</html>

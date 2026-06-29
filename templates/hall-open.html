@@ -1,0 +1,32 @@
+<!-- templates/hall-open.html -->
+
+<div class="sect">
+  <h3>금일 포지션</h3>
+  <p class="hint">인원을 추가하고 담당 포지션을 선택하세요. 한 사람이 여러 포지션 가능.</p>
+  <div id="hoPeople"></div>
+  <button class="dashed" id="hoAddPerson" style="margin-top:4px">＋ 인원 추가</button>
+</div>
+
+<div class="sect">
+  <h3>고정 항목</h3>
+  <p class="hint">업셀링·리뷰빵 진행 여부</p>
+  <div class="oxrow">
+    <span class="oxlab">업셀링</span>
+    <div class="ox" data-key="upselling">
+      <button data-v="o">O</button><button data-v="x">X</button>
+    </div>
+  </div>
+  <div class="oxrow">
+    <span class="oxlab">리뷰빵</span>
+    <div class="ox" data-key="review_bread">
+      <button data-v="o">O</button><button data-v="x">X</button>
+    </div>
+  </div>
+</div>
+
+<div class="sect">
+  <h3>특이사항</h3>
+  <p class="hint">한 줄씩 Enter로 추가</p>
+  <div id="hoNotesTags" class="tags"></div>
+  <input id="hoNotesInput" class="noteinput" type="text" placeholder="특이사항 입력 후 Enter">
+</div>

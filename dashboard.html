@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>보고 모아보기</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* ── 대시보드 전용 레이아웃 ── */
+    html, body { height: 100%; overflow: hidden; background: #F7F6F3; }
+
+    .shell { display: flex; height: 100vh; }
+
+    /* 사이드바 */
+    .side {
+      width: 260px; flex: none;
+      background: #EFEDE8;
+      border-right: 1px solid #E5E1D8;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .side-head {
+      padding: 16px 14px 10px;
+      border-bottom: 1px solid #E5E1D8;
+    }
+    .side-head .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 700; color: #233B30;
+      margin-bottom: 10px;
+    }
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap .icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 13px; color: #9AA29D; pointer-events: none;
+    }
+    .search-wrap input {
+      width: 100%; height: 34px;
+      border: 1px solid #DDD9D0; border-radius: 7px;
+      background: #FFF; padding: 0 10px 0 30px;
+      font-size: 13px; color: #1E2A24;
+    }
+    .search-wrap input:focus { outline: 2px solid #1D9E75; outline-offset: 1px; }
+    .search-wrap input::placeholder { color: #B0B8B4; }
+
+    /* 트리 네비 */
+    .tree { flex: 1; overflow-y: auto; padding: 8px 6px 40px; }
+    .tree::-webkit-scrollbar { width: 4px; }
+    .tree::-webkit-scrollbar-thumb { background: #D7D2C6; border-radius: 99px; }
+
+    .branch-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 8px; border-radius: 7px;
+      cursor: pointer; user-select: none;
+      font-size: 13px; font-weight: 700; color: #233B30;
+      margin-top: 4px;
+    }
+    .branch-row:hover { background: rgba(35,59,48,.07); }
+    .branch-row .caret { font-size: 9px; color: #9AA29D; width: 12px; flex: none; transition: transform .15s; }
+    .branch-row .bname { flex: 1; }
+    .branch-row .bcnt { font-size: 11px; color: #9AA29D; font-weight: 400; }
+
+    .date-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px 5px 20px; border-radius: 7px;
+      cursor: pointer; user-select: none;
+      font-size: 12.5px; color: #4A5650;
+    }
+    .date-row:hover { background: rgba(35,59,48,.07); }
+    .date-row .caret { font-size: 9px; color: #B0B8B4; width: 12px; flex: none; }
+    .date-row .dname { flex: 1; }
+    .date-row .dcnt { font-size: 11px; color: #B0B8B4; }
+
+    .leaf-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 8px 5px 32px; border-radius: 7px;
+      cursor: pointer; user-select: none;
+      font-size: 13px; color: #4A5650;
+    }
+    .leaf-row:hover { background: rgba(35,59,48,.07); }
+    .leaf-row.active { background: #E3F4EC; color: #0F6E56; font-weight: 600; }
+    .leaf-row .ldot { width: 6px; height: 6px; border-radius: 99px; flex: none; }
+    .ldot.green  { background: #1D9E75; }
+    .ldot.deep   { background: #233B30; }
+    .ldot.blue   { background: #5B8DAE; }
+    .ldot.amber  { background: #C07D14; }
+
+    .empty-tree { padding: 24px 12px; text-align: center; color: #9AA29D; font-size: 13px; line-height: 1.6; }
+
+    /* 메인 영역 */
+    .main { flex: 1; overflow-y: auto; background: #FFF; }
+    .main::-webkit-scrollbar { width: 6px; }
+    .main::-webkit-scrollbar-thumb { background: #E5E1D8; border-radius: 99px; }
+
+    /* 플레이스홀더 */
+    .placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; color: #B0B8B4; text-align: center; padding: 40px; gap: 10px;
+    }
+    .placeholder .pi { font-size: 40px; }
+    .placeholder p { font-size: 14px; line-height: 1.6; margin: 0; }
+
+    /* 노션 스타일 페이지 */
+    .page { max-width: 700px; margin: 0 auto; padding: 56px 60px 100px; }
+    .page-icon { font-size: 48px; line-height: 1; margin-bottom: 14px; }
+    .page-title {
+      font-size: 34px; font-weight: 800; letter-spacing: -.03em;
+      line-height: 1.15; margin: 0 0 22px; color: #1E2A24;
+    }
+    .page-props {
+      border-top: 1px solid #EFEDE8;
+      border-bottom: 1px solid #EFEDE8;
+      padding: 6px 0; margin-bottom: 36px;
+    }
+    .prop {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; font-size: 14px;
+    }
+    .prop .pk { width: 80px; color: #9AA29D; font-size: 13px; flex: none; }
+    .prop .pv { color: #1E2A24; font-weight: 500; }
+
+    /* 섹션 헤더 */
+    h2.sh {
+      font-size: 18px; font-weight: 700; margin: 32px 0 10px;
+      letter-spacing: -.01em; color: #1E2A24;
+      display: flex; align-items: center; gap: 8px;
+    }
+    h2.sh .shi { font-size: 16px; }
+
+    /* 카테고리 라벨 */
+    .cat-label {
+      font-size: 11px; font-weight: 700; color: #9AA29D;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin: 16px 0 4px;
+    }
+
+    /* 아이템 블록 */
+    .iblock { padding: 9px 0; border-bottom: 1px solid #F0EDE8; }
+    .iblock:last-child { border-bottom: none; }
+    .irow { display: flex; align-items: center; gap: 9px; }
+    .idot { width: 7px; height: 7px; border-radius: 99px; flex: none; }
+    .idot.ok   { background: #1D9E75; }
+    .idot.none { background: #C8CEC9; }
+    .iname { font-size: 15px; font-weight: 600; flex: 1; }
+    .iblock.is-none .iname { color: #9AA29D; text-decoration: line-through; }
+    .cond-tag {
+      font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px;
+      background: #E3F4EC; color: #0F6E56;
+    }
+    .none-tag {
+      font-size: 12px; padding: 2px 9px; border-radius: 99px;
+      background: #EEEBE4; color: #6B7770;
+    }
+    .itags { display: flex; flex-wrap: wrap; gap: 5px; margin: 7px 0 0 16px; }
+    .itag-issue {
+      font-size: 12px; padding: 3px 9px; border-radius: 99px;
+      background: #FBEFD8; color: #7E4E08;
+    }
+    .itag-note {
+      font-size: 12px; padding: 3px 9px; border-radius: 7px;
+      background: #F0F4F1; border: 1px solid #DCE4DF; color: #1E2A24;
+    }
+    .itag-meta {
+      font-size: 12px; padding: 3px 9px; border-radius: 7px;
+      background: #F7F6F3; border: 1px solid #E5E1D8; color: #6B7770;
+    }
+
+    /* 콜아웃 */
+    .callout {
+      display: flex; gap: 11px; border-radius: 10px;
+      padding: 13px 15px; margin: 8px 0; font-size: 14px; line-height: 1.55;
+    }
+    .callout.warn { background: #FBEFD8; color: #7E4E08; }
+    .callout.ok   { background: #E3F4EC; color: #0F6E56; }
+    .callout .ci  { font-size: 16px; flex: none; line-height: 1.4; }
+    .callout .cb  { flex: 1; }
+    .aged-item { padding: 4px 0; border-bottom: 1px dashed rgba(126,78,8,.2); }
+    .aged-item:last-child { border-bottom: none; }
+    .aged-item .an { font-weight: 700; }
+    .aged-item .am { font-size: 12.5px; opacity: .85; margin-left: 4px; }
+    .aged-item .ap { display: block; font-size: 13px; margin-top: 2px; }
+    .aged-item .ap.empty { color: rgba(126,78,8,.5); }
+
+    /* 테이블 */
+    .ntable { width: 100%; border-collapse: collapse; font-size: 14px; margin: 6px 0; }
+    .ntable th {
+      text-align: left; font-size: 11.5px; color: #9AA29D; font-weight: 600;
+      padding: 6px 10px; border-bottom: 1px solid #EFEDE8; letter-spacing: .03em;
+    }
+    .ntable td { padding: 9px 10px; border-bottom: 1px solid #F7F6F3; }
+    .ntable tr:last-child td { border-bottom: none; }
+    .ntable .tq { text-align: right; font-weight: 600; }
+    .ntable .tu { text-align: right; color: #9AA29D; width: 52px; }
+    .ntable .tp { font-weight: 700; color: #233B30; width: 80px; }
+    .ntable .te { color: #B0B8B4; }
+    .ntable .empty-row td { color: #B0B8B4; font-size: 13px; padding: 10px; }
+
+    /* O/X 뱃지 */
+    .oxb {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 14px; padding: 6px 13px; border-radius: 9px; margin: 2px 6px 4px 0;
+    }
+    .oxb b { font-weight: 700; }
+    .oxb.o { background: #E3F4EC; color: #0F6E56; }
+    .oxb.x { background: #EEEBE4; color: #6B7770; }
+    .oxb.na { background: #F7F6F3; color: #B0B8B4; }
+
+    /* 체크리스트 */
+    .ck-line { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #F7F6F3; }
+    .ck-line:last-child { border-bottom: none; }
+    .ck-box {
+      width: 18px; height: 18px; border-radius: 5px; flex: none;
+      border: 1.5px solid #D7D2C6; display: flex; align-items: center;
+      justify-content: center; font-size: 11px; color: transparent;
+    }
+    .ck-line.done .ck-box { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+    .ck-line .ct { font-size: 14px; }
+    .ck-line.done .ct { color: #9AA29D; text-decoration: line-through; }
+
+    /* 불릿 리스트 */
+    .blist { margin: 6px 0 0; padding: 0; list-style: none; }
+    .blist li {
+      font-size: 14.5px; line-height: 1.6;
+      padding: 3px 0 3px 16px; position: relative;
+      border-bottom: 1px solid #F7F6F3;
+    }
+    .blist li:last-child { border-bottom: none; }
+    .blist li::before { content: '·'; position: absolute; left: 4px; color: #B0B8B4; }
+
+    /* 하이라이트 */
+    mark { background: #FBE6B8; color: inherit; border-radius: 3px; padding: 0 2px; }
+
+    /* JSON 토글 */
+    .raw-btn {
+      margin-top: 36px; font-size: 12.5px; color: #9AA29D;
+      border: 1px solid #E5E1D8; border-radius: 8px; height: 32px;
+      padding: 0 12px; background: none; cursor: pointer;
+    }
+    .raw-btn:hover { color: #4A5650; border-color: #C8CEC9; }
+    pre {
+      background: #1B2F26; color: #D8E8DF; padding: 14px; border-radius: 10px;
+      font-size: 12px; overflow: auto; margin: 10px 0 0; line-height: 1.55;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap; word-break: break-word; display: none;
+    }
+
+    /* 모바일 */
+    .mob-top {
+      display: none; align-items: center; gap: 10px;
+      padding: 12px 14px; border-bottom: 1px solid #E5E1D8;
+      position: sticky; top: 0; background: #FFF; z-index: 10;
+    }
+    .mob-top button { font-size: 20px; background: none; border: none; }
+    .mob-top .mt { font-size: 14px; font-weight: 600; }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(20,28,24,.35); z-index: 30; }
+
+    @media (max-width: 720px) {
+      .side { position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transform: translateX(-100%); transition: transform .2s; }
+      .side.open { transform: none; }
+      .backdrop.show { display: block; }
+      .mob-top { display: flex; }
+      .page { padding: 24px 20px 80px; }
+      .page-title { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- 사이드바 -->
+  <aside class="side" id="side">
+    <div class="side-head">
+      <div class="logo">📋 보고 모아보기</div>
+      <div class="search-wrap">
+        <span class="icon">🔍</span>
+        <input id="search" type="text" placeholder="검색 — 품목, 메모, 작성자">
+      </div>
+    </div>
+    <div class="tree" id="tree"></div>
+  </aside>
+
+  <!-- 메인 -->
+  <main class="main" id="main">
+    <div class="mob-top">
+      <button id="menuBtn">☰</button>
+      <span class="mt" id="mobTitle">보고 모아보기</span>
+    </div>
+    <div id="page"></div>
+  </main>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<script type="module">
+  /* ===== 샘플 데이터 — Supabase reports 테이블 구조와 동일 =====
+     실제 연결 시 아래 DATA를 Supabase SELECT 결과로 교체하면 됨     */
+  const DATA = [
+    { id:'r-09', branch:'북성수', report_date:'2026-06-21', shift_type:'kitchen_open', author:'김도윤', created_at:'2026-06-21T08:42:00',
+      payload:{ items:[
+        {item_name:'도우',category:'도우',status:'good',lots:[{prod_date:'2026-06-21',quantity:'5판',fermentation:'93',cold:'10',note:'전판 정상'}]},
+        {item_name:'잠봉슬라이스',category:'프로틴',status:'good',lots:[{prod_date:'2026-06-20',quantity:'12장',condition_pct:95,issues:[{attr:'염도',value:'높음'}],notes:['콩소메 한면']}]},
+        {item_name:'베토소',category:'스프/베이스',status:'good',lots:[{prod_date:'2026-06-18',quantity:'2통',condition_pct:90,issues:[{attr:'매운맛',value:'강함'}],notes:['페페론치노 정량']}]},
+        {item_name:'풀드포크',category:'프로틴',status:'none',lots:[]},
+        {item_name:'허니버터',category:'스프레드',status:'good',lots:[{prod_date:'2026-06-20',quantity:'1통',condition_pct:95,issues:[{attr:'단단함',value:'무름'}],notes:['금일 소진']}]},
+        {item_name:'RTM',category:'야채포션',status:'good',lots:[{prod_date:'2026-06-21',quantity:'1박스',condition_pct:100,issues:[],notes:['줄기 체크']}]}
+      ], aged_inventory:[{item_name:'베토소',prod_date:'2026-06-18',days_old:3,quantity:'2통',plan:'금일 소진 우선'}],
+      general_notes:['오븐 2번 예열 지연 — 점검 요청'] } },
+
+    { id:'r-08', branch:'북성수', report_date:'2026-06-21', shift_type:'hall_open', author:'민주', created_at:'2026-06-21T09:05:00',
+      payload:{ positions:[{name:'항서',roles:['파스','포장']},{name:'민주',roles:['인포','러너']},{name:'유진',roles:['러너','설거지']}],
+        by_position:[{position:'파스',staff:['항서']},{position:'포장',staff:['항서']},{position:'인포',staff:['민주']},{position:'러너',staff:['민주','유진']},{position:'설거지',staff:['유진']}],
+        checks:{upselling:'x',review_bread:'o'},
+        general_notes:['날이 좋아 창문 열고 서비스','여유 시 유진 주방 보조','항서 브레이크 때 신강에 소개서 및 사진 전달'] } },
+
+    { id:'r-07', branch:'청계천', report_date:'2026-06-21', shift_type:'hall_close', author:'정해린', created_at:'2026-06-21T22:48:00',
+      payload:{ orders:{ beverage:[], consumables:[
+          {item:'크로스타 용기',qty:2,unit:'박스'},{item:'물티슈',qty:1,unit:'박스'},
+          {item:'1구 캐리어',qty:1,unit:'박스'},{item:'포장봉투',qty:15,unit:'박스'}]},
+        inventory_updated:true,
+        opening_tasks:[{task:'원두 갈기',done:false},{task:'스프레드 채우기',done:false},{task:'창문 닦기',done:false}],
+        handover_notes:['원두 갈아둔 건 최대한 당일 사용 권장','인쇄컵 2줄, 핫컵은 포장대에서만 채움'] } },
+
+    { id:'r-06', branch:'여의도', report_date:'2026-06-21', shift_type:'kitchen_open', author:'박지호', created_at:'2026-06-21T08:30:00',
+      payload:{ items:[
+        {item_name:'도우',category:'도우',status:'good',lots:[{prod_date:'2026-06-21',quantity:'4판',fermentation:'95',cold:'12',note:''}]},
+        {item_name:'잠봉슬라이스',category:'프로틴',status:'good',lots:[{prod_date:'2026-06-21',quantity:'10장',condition_pct:100,issues:[],notes:[]}]},
+        {item_name:'연어',category:'프로틴',status:'good',lots:[{prod_date:'2026-06-20',quantity:'1팩',condition_pct:95,issues:[{attr:'염도',value:'부족'}],notes:[]}]}
+      ], aged_inventory:[], general_notes:[] } },
+
+    { id:'r-05', branch:'신세계강남', report_date:'2026-06-20', shift_type:'kitchen_open', author:'이수민', created_at:'2026-06-20T08:55:00',
+      payload:{ items:[
+        {item_name:'도우',category:'도우',status:'good',lots:[{prod_date:'2026-06-20',quantity:'3판',fermentation:'90',cold:'8',note:'발효 느림'}]},
+        {item_name:'잠봉슬라이스',category:'프로틴',status:'good',lots:[{prod_date:'2026-06-17',quantity:'8장',condition_pct:90,issues:[{attr:'수분감',value:'과다'}],notes:['콩소메 양면']}]},
+        {item_name:'허니버터',category:'스프레드',status:'good',lots:[{prod_date:'2026-06-20',quantity:'1통',condition_pct:100,issues:[],notes:[]}]}
+      ], aged_inventory:[{item_name:'잠봉슬라이스',prod_date:'2026-06-17',days_old:3,quantity:'8장',plan:'점심 우선 소진'}],
+      general_notes:['피오르디 입고 지연 — 오후 도착 예정'] } },
+
+    { id:'r-04', branch:'북성수', report_date:'2026-06-20', shift_type:'hall_close', author:'유진', created_at:'2026-06-20T22:30:00',
+      payload:{ orders:{ beverage:[{item:'콜라',qty:2,unit:'박스'},{item:'생수',qty:3,unit:'박스'}],
+          consumables:[{item:'포크',qty:1,unit:'박스'},{item:'냅킨',qty:2,unit:'박스'}]},
+        inventory_updated:false,
+        opening_tasks:[{task:'제빙기 청소',done:true},{task:'테이블 세팅 점검',done:false}],
+        handover_notes:['콜라 재고 거의 소진 — 발주 확인 필요'] } },
+
+    { id:'r-03', branch:'여의도', report_date:'2026-06-20', shift_type:'hall_open', author:'서연', created_at:'2026-06-20T09:10:00',
+      payload:{ positions:[{name:'서연',roles:['인포','파스']},{name:'준호',roles:['러너','설거지']}],
+        by_position:[{position:'파스',staff:['서연']},{position:'포장',staff:[]},{position:'인포',staff:['서연']},{position:'러너',staff:['준호']},{position:'설거지',staff:['준호']}],
+        checks:{upselling:'o',review_bread:'o'},
+        general_notes:['주말 대비 러너 1명 추가 요청'] } },
+
+    { id:'r-02', branch:'청계천', report_date:'2026-06-19', shift_type:'kitchen_open', author:'한결', created_at:'2026-06-19T08:40:00',
+      payload:{ items:[
+        {item_name:'도우',category:'도우',status:'good',lots:[{prod_date:'2026-06-19',quantity:'6판',fermentation:'94',cold:'10',note:''}]},
+        {item_name:'풀드포크',category:'프로틴',status:'good',lots:[{prod_date:'2026-06-16',quantity:'1통',condition_pct:85,issues:[{attr:'산미',value:'부족'},{attr:'수분감',value:'부족'}],notes:['물 추가','깔라만시 후첨']}]},
+        {item_name:'나르코티코',category:'소스',status:'good',lots:[{prod_date:'2026-06-19',quantity:'1통',condition_pct:100,issues:[],notes:[]}]}
+      ], aged_inventory:[{item_name:'풀드포크',prod_date:'2026-06-16',days_old:3,quantity:'1통',plan:'직식 전환 검토'}],
+      general_notes:[] } },
+
+    { id:'r-01', branch:'여의도', report_date:'2026-06-19', shift_type:'hall_close', author:'준호', created_at:'2026-06-19T22:55:00',
+      payload:{ orders:{ beverage:[{item:'사이다',qty:1,unit:'박스'}],
+          consumables:[{item:'스푼',qty:2,unit:'박스'},{item:'포장봉투',qty:10,unit:'박스'}]},
+        inventory_updated:true, opening_tasks:[{task:'원두 갈기',done:false}],
+        handover_notes:['마감 정상'] } }
+  ];
+
+  /* ===== 설정 ===== */
+  const TYPES = {
+    kitchen_open:  { label:'주방 오픈',  icon:'☀️', color:'green' },
+    kitchen_close: { label:'주방 마감',  icon:'🌙', color:'deep'  },
+    hall_open:     { label:'홀 오픈',    icon:'🪑', color:'blue'  },
+    hall_close:    { label:'홀 마감',    icon:'🔒', color:'amber' },
+  };
+  const BRANCH_ORDER = ['북성수','여의도','신세계강남','청계천'];
+  const TYPE_ORDER   = ['kitchen_open','hall_open','kitchen_close','hall_close'];
+
+  /* ===== 유틸 ===== */
+  const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const fmtDate = d => { const x=new Date(d+'T00:00:00'); return `${+d.slice(5,7)}월 ${+d.slice(8,10)}일 (${['일','월','화','수','목','금','토'][x.getDay()]})`; };
+  const fmtFull = d => { const x=new Date(d+'T00:00:00'); return `${d.slice(0,4)}년 ${+d.slice(5,7)}월 ${+d.slice(8,10)}일 ${['일','월','화','수','목','금','토'][x.getDay()]}요일`; };
+  const fmtTime = iso => { const x=new Date(iso); return `${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`; };
+
+  /* ===== 검색 ===== */
+  let searchVal = '';
+  let selectedId = null;
+  const collapsed = { branch: new Set(), date: new Set() };
+
+  function searchBlob(r) {
+    let s = [r.author, r.branch, TYPES[r.shift_type]?.label].join(' ');
+    const p = r.payload;
+    (p.items||[]).forEach(it => {
+      s += ' ' + it.item_name;
+      (it.lots||[]).forEach(l => { (l.notes||[]).forEach(n => s+=' '+n); (l.issues||[]).forEach(i => s+=' '+i.attr+' '+i.value); });
+    });
+    (p.aged_inventory||[]).forEach(a => s += ' '+a.item_name+' '+(a.plan||''));
+    (p.general_notes||[]).forEach(n => s += ' '+n);
+    (p.positions||[]).forEach(x => s += ' '+x.name+' '+x.roles.join(' '));
+    (p.handover_notes||[]).forEach(n => s += ' '+n);
+    (p.opening_tasks||[]).forEach(t => s += ' '+t.task);
+    ['beverage','consumables'].forEach(g => (p.orders?.[g]||[]).forEach(o => s += ' '+o.item));
+    return s.toLowerCase();
+  }
+
+  function hl(text) {
+    const q = searchVal.trim();
+    if (!q) return esc(text);
+    const s = String(text), i = s.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return esc(s);
+    return esc(s.slice(0,i)) + '<mark>' + esc(s.slice(i,i+q.length)) + '</mark>' + esc(s.slice(i+q.length));
+  }
+
+  function visible() {
+    const q = searchVal.trim().toLowerCase();
+    return q ? DATA.filter(r => searchBlob(r).includes(q)) : DATA.slice();
+  }
+
+  /* ===== 트리 렌더 ===== */
+  function renderTree() {
+    const rows = visible(), T = document.getElementById('tree'), searching = !!searchVal.trim();
+    if (!rows.length) { T.innerHTML = '<div class="empty-tree">검색 결과가 없습니다.</div>'; return; }
+    let h = '';
+    BRANCH_ORDER.forEach(branch => {
+      const br = rows.filter(r => r.branch === branch); if (!br.length) return;
+      const open = searching || !collapsed.branch.has(branch);
+      h += `<div class="branch-row" data-act="branch" data-b="${esc(branch)}">
+        <span class="caret" style="${open?'transform:rotate(90deg)':''}">▶</span>
+        <span class="bname">${esc(branch)}</span>
+        <span class="bcnt">${br.length}</span></div>`;
+      if (!open) return;
+      [...new Set(br.map(r => r.report_date))].sort().reverse().forEach(date => {
+        const dr = br.filter(r => r.report_date === date), key = branch+'|'+date;
+        const dopen = searching || !collapsed.date.has(key);
+        h += `<div class="date-row" data-act="date" data-k="${esc(key)}">
+          <span class="caret" style="${dopen?'transform:rotate(90deg)':''}">▶</span>
+          <span class="dname">${fmtDate(date)}</span>
+          <span class="dcnt">${dr.length}</span></div>`;
+        if (!dopen) return;
+        dr.sort((a,b) => TYPE_ORDER.indexOf(a.shift_type) - TYPE_ORDER.indexOf(b.shift_type));
+        dr.forEach(r => {
+          const t = TYPES[r.shift_type];
+          h += `<div class="leaf-row ${r.id===selectedId?'active':''}" data-act="leaf" data-id="${r.id}">
+            <span class="ldot ${t.color}"></span><span>${t.icon}</span>
+            <span>${t.label}</span></div>`;
+        });
+      });
+    });
+    T.innerHTML = h;
+  }
+
+  /* ===== 페이지 렌더 ===== */
+  function renderPage() {
+    const r = DATA.find(x => x.id === selectedId);
+    const P = document.getElementById('page');
+    if (!r) {
+      P.innerHTML = `<div class="placeholder"><div class="pi">📋</div><p>왼쪽에서 보고를 선택하세요.<br>지점 → 날짜 → 보고 종류 순으로 탐색하거나<br>검색창에서 바로 찾을 수 있어요.</p></div>`;
+      return;
+    }
+    const t = TYPES[r.shift_type];
+    document.getElementById('mobTitle').textContent = `${r.branch} · ${t.label}`;
+    P.innerHTML = `
+      <div class="page">
+        <div class="page-icon">${t.icon}</div>
+        <h1 class="page-title">${esc(r.branch)} ${t.label}보고</h1>
+        <div class="page-props">
+          <div class="prop"><span class="pk">📍 지점</span><span class="pv">${esc(r.branch)}</span></div>
+          <div class="prop"><span class="pk">📅 보고일</span><span class="pv">${fmtFull(r.report_date)}</span></div>
+          <div class="prop"><span class="pk">✍️ 작성자</span><span class="pv">${esc(r.author||'—')}</span></div>
+          <div class="prop"><span class="pk">🕘 제출</span><span class="pv">${fmtTime(r.created_at)}</span></div>
+        </div>
+        ${bodyHTML(r)}
+        <button class="raw-btn" id="rawBtn">원본 JSON 보기</button>
+        <pre id="rawPre">${esc(JSON.stringify(r, null, 2))}</pre>
+      </div>`;
+    document.getElementById('rawBtn').onclick = () => {
+      const pre = document.getElementById('rawPre');
+      const show = pre.style.display !== 'block';
+      pre.style.display = show ? 'block' : 'none';
+      document.getElementById('rawBtn').textContent = show ? '원본 JSON 닫기' : '원본 JSON 보기';
+    };
+  }
+
+  function bodyHTML(r) {
+    if (r.shift_type === 'kitchen_open' || r.shift_type === 'kitchen_close') return kitchenBody(r.payload);
+    if (r.shift_type === 'hall_open')   return hallOpenBody(r.payload);
+    if (r.shift_type === 'hall_close')  return hallCloseBody(r.payload);
+    return '';
+  }
+
+  /* 주방 오픈/마감 */
+  function kitchenBody(p) {
+    let h = `<h2 class="sh"><span class="shi">🥬</span> 재료 점검</h2>`;
+    let lastCat = null;
+    (p.items||[]).forEach(it => {
+      if (it.category !== lastCat) { h += `<div class="cat-label">${esc(it.category)}</div>`; lastCat = it.category; }
+      const none = it.status === 'none', l0 = (it.lots||[])[0]||{};
+      h += `<div class="iblock ${none?'is-none':''}"><div class="irow">
+        <span class="idot ${none?'none':'ok'}"></span>
+        <span class="iname">${hl(it.item_name)}</span>`;
+      if (none) h += `<span class="none-tag">오늘 없음</span>`;
+      else if (l0.condition_pct != null) h += `<span class="cond-tag">${l0.condition_pct}%</span>`;
+      h += `</div>`;
+      if (!none) (it.lots||[]).forEach(l => {
+        const tags = [];
+        if (l.prod_date || l.quantity) tags.push(`<span class="itag-meta">${esc(l.prod_date||'')}${l.quantity?' · '+esc(l.quantity):''}</span>`);
+        if (l.fermentation) tags.push(`<span class="itag-meta">발효 ${esc(l.fermentation)}%</span>`);
+        if (l.cold) tags.push(`<span class="itag-meta">냉기 ${esc(l.cold)}%</span>`);
+        if (l.note) tags.push(`<span class="itag-note">${hl(l.note)}</span>`);
+        (l.issues||[]).forEach(i => tags.push(`<span class="itag-issue">${hl(i.attr)} · ${hl(i.value)}</span>`));
+        (l.notes||[]).forEach(n => tags.push(`<span class="itag-note">${hl(n)}</span>`));
+        if (tags.length) h += `<div class="itags">${tags.join('')}</div>`;
+      });
+      h += `</div>`;
+    });
+
+    if ((p.aged_inventory||[]).length) {
+      h += `<h2 class="sh"><span class="shi">⚠️</span> 3일 이상 재고</h2>
+        <div class="callout warn"><span class="ci">⚠️</span><div class="cb">` +
+        p.aged_inventory.map(a => `<div class="aged-item">
+          <span class="an">${hl(a.item_name)}</span>
+          <span class="am">· ${esc(a.prod_date)} · ${a.days_old}일 경과${a.quantity?' · '+esc(a.quantity):''}</span>
+          <span class="ap ${a.plan?'':'empty'}">→ ${hl(a.plan||'처리 계획 미입력')}</span>
+        </div>`).join('') + `</div></div>`;
+    }
+    if ((p.general_notes||[]).length) {
+      h += `<h2 class="sh"><span class="shi">📝</span> 특이사항</h2><ul class="blist">` +
+        p.general_notes.map(n => `<li>${hl(n)}</li>`).join('') + `</ul>`;
+    }
+    return h;
+  }
+
+  /* 홀 오픈 */
+  function hallOpenBody(p) {
+    let h = `<h2 class="sh"><span class="shi">👥</span> 금일 포지션</h2>
+      <table class="ntable"><tr><th>포지션</th><th>담당</th></tr>` +
+      (p.by_position||[]).map(b => `<tr>
+        <td class="tp">${esc(b.position)}</td>
+        <td class="${b.staff.length?'':'te'}">${b.staff.length ? hl(b.staff.join(', ')) : '미배정'}</td>
+      </tr>`).join('') + `</table>`;
+    h += `<h2 class="sh"><span class="shi">✅</span> 고정 항목</h2><div>`;
+    const ox = (label, v) => `<span class="oxb ${v==='o'?'o':v==='x'?'x':'na'}">${label} <b>${(v||'—').toUpperCase()}</b></span>`;
+    h += ox('업셀링', p.checks?.upselling) + ox('리뷰빵', p.checks?.review_bread) + `</div>`;
+    if ((p.general_notes||[]).length) {
+      h += `<h2 class="sh"><span class="shi">📝</span> 특이사항</h2><ul class="blist">` +
+        p.general_notes.map(n => `<li>${hl(n)}</li>`).join('') + `</ul>`;
+    }
+    return h;
+  }
+
+  /* 홀 마감 */
+  function hallCloseBody(p) {
+    const orderTable = rows => {
+      if (!rows.length) return `<table class="ntable"><tr class="empty-row"><td>발주 없음</td></tr></table>`;
+      return `<table class="ntable"><tr><th>품목</th><th class="tq">수량</th><th class="tu">단위</th></tr>` +
+        rows.map(o => `<tr><td>${hl(o.item)}</td><td class="tq">${o.qty??''}</td><td class="tu">${esc(o.unit||'')}</td></tr>`).join('') + `</table>`;
+    };
+    let h = `<h2 class="sh"><span class="shi">🧃</span> 음료 / 주류</h2>${orderTable(p.orders?.beverage||[])}`;
+    h += `<h2 class="sh"><span class="shi">📦</span> 소모품</h2>${orderTable(p.orders?.consumables||[])}`;
+    h += `<h2 class="sh"><span class="shi">📋</span> 재고 체크</h2>
+      <div class="callout ${p.inventory_updated?'ok':'warn'}">
+        <span class="ci">${p.inventory_updated?'✅':'⚠️'}</span>
+        <div class="cb">${p.inventory_updated ? '재고 리스트 업데이트 완료' : '재고 리스트 업데이트 <b>미완료</b>'}</div>
+      </div>`;
+    if ((p.opening_tasks||[]).length) {
+      h += `<h2 class="sh"><span class="shi">☀️</span> 오픈조 할일</h2>` +
+        p.opening_tasks.map(t => `<div class="ck-line ${t.done?'done':''}">
+          <span class="ck-box">${t.done?'✓':''}</span>
+          <span class="ct">${hl(t.task)}</span>
+        </div>`).join('');
+    }
+    if ((p.handover_notes||[]).length) {
+      h += `<h2 class="sh"><span class="shi">📝</span> 인수인계</h2><ul class="blist">` +
+        p.handover_notes.map(n => `<li>${hl(n)}</li>`).join('') + `</ul>`;
+    }
+    return h;
+  }
+
+  /* ===== 이벤트 ===== */
+  document.getElementById('tree').addEventListener('click', e => {
+    const row = e.target.closest('[data-act]'); if (!row) return;
+    const act = row.dataset.act;
+    if (act === 'branch') {
+      const b = row.dataset.b;
+      collapsed.branch.has(b) ? collapsed.branch.delete(b) : collapsed.branch.add(b);
+      renderTree();
+    } else if (act === 'date') {
+      const k = row.dataset.k;
+      collapsed.date.has(k) ? collapsed.date.delete(k) : collapsed.date.add(k);
+      renderTree();
+    } else if (act === 'leaf') {
+      selectedId = row.dataset.id;
+      renderTree(); renderPage();
+      if (window.innerWidth <= 720) closeSide();
+      document.getElementById('main').scrollTop = 0;
+    }
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    searchVal = e.target.value;
+    renderTree();
+    const rows = visible();
+    if (rows.length && !rows.some(r => r.id === selectedId)) {
+      selectedId = rows[0].id;
+      renderTree(); renderPage();
+    }
+  });
+
+  function openSide()  { document.getElementById('side').classList.add('open'); document.getElementById('backdrop').classList.add('show'); }
+  function closeSide() { document.getElementById('side').classList.remove('open'); document.getElementById('backdrop').classList.remove('show'); }
+  document.getElementById('menuBtn').onclick  = openSide;
+  document.getElementById('backdrop').onclick = closeSide;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSide(); });
+
+  /* ===== 초기화 ===== */
+  DATA.sort((a,b) => b.report_date < a.report_date ? -1 : b.report_date > a.report_date ? 1 : b.created_at < a.created_at ? -1 : 1);
+  selectedId = DATA[0].id;
+  renderTree();
+  renderPage();
+</script>
+</body>
+</html>

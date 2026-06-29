@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>보고 입력</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+
+<div class="wrap">
+  <!-- 고정 헤더 (항상 표시) -->
+  <div class="top">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px">
+      <button class="back-btn" onclick="history.back()">← 뒤로</button>
+      <span class="type-label" id="typeLabel"></span>
+    </div>
+    <h1 id="formTitle">보고</h1>
+    <div class="meta">
+      <div class="fld"><label>지점</label><select id="branch"></select></div>
+      <div class="fld"><label>보고일</label><input type="date" id="rdate"></div>
+      <div class="fld full"><label>작성자</label><input id="author" placeholder="작성자"></div>
+    </div>
+  </div>
+
+  <!-- 여기에 template HTML이 inject됨 -->
+  <div id="tplContainer"></div>
+</div>
+
+<!-- 제출 바 -->
+<div class="submit-bar" id="submitBar">
+  <div class="inner">
+    <button class="submit-btn" id="submitBtn">보고 제출</button>
+  </div>
+</div>
+
+<!-- 제출 결과 모달 -->
+<div class="ov" id="ovSub">
+  <div class="sheet">
+    <div class="sh"><b>제출 데이터 (Supabase 저장 형태)</b><button id="closeSub">✕</button></div>
+    <div class="sc">
+      <div id="saveBox"></div>
+      <pre id="jsonOut"></pre>
+      <button class="copy-btn" id="copyJson">JSON 복사</button>
+    </div>
+  </div>
+</div>
+
+<!-- 재료 추가 모달 (주방 오픈 전용, template이 필요시 활성화) -->
+<div class="ov" id="ovAdd">
+  <div class="sheet">
+    <div class="sh"><b>재료 추가</b><button id="closeAdd">✕</button></div>
+    <div class="sc" id="pickBody"></div>
+  </div>
+</div>
+
+<div class="toast"></div>
+
+<script type="module">
+  import { getParams, loadTemplate, getTemplateInfo } from './core/router.js';
+  import { submitReport } from './core/submit.js';
+  import { BRANCHES, BRANCH_ORDER } from './data/branches.js';
+  import { toast } from './core/ui.js';
+
+  const params = getParams();
+  const tplInfo = getTemplateInfo(params.type);
+
+  // 헤더 채우기
+  document.getElementById('typeLabel').textContent = tplInfo?.label || '';
+  document.getElementById('formTitle').textContent = (tplInfo?.label || '') + ' 보고';
+
+  // 지점 select 채우기
+  const branchSel = document.getElementById('branch');
+  BRANCH_ORDER.forEach(b => {
+    const o = document.createElement('option');
+    o.textContent = b;
+    branchSel.appendChild(o);
+  });
+  branchSel.value = params.branch;
+  document.getElementById('rdate').value = params.date;
+  document.getElementById('author').value = params.author;
+
+  // 제출 바 표시
+  document.getElementById('submitBar').classList.add('visible');
+
+  // template 로드 및 init
+  const container = document.getElementById('tplContainer');
+  const mod = await loadTemplate(container, params.type);
+
+  if (mod?.init) {
+    mod.init({
+      branch: branchSel,
+      rdate:  document.getElementById('rdate'),
+      author: document.getElementById('author'),
+    });
+  }
+
+  // 제출 버튼
+  document.getElementById('submitBtn').addEventListener('click', async () => {
+    if (!mod?.buildPayload) return;
+    const payload = mod.buildPayload({
+      branch: branchSel.value,
+      report_date: document.getElementById('rdate').value,
+      shift_type: params.type,
+      author: document.getElementById('author').value || null,
+    });
+
+    const result = await submitReport(payload);
+    const box = document.getElementById('saveBox');
+    if (result.ok) {
+      box.className = 'savebox ok';
+      box.innerHTML = '<b>저장됨</b> · reports 테이블';
+    } else {
+      box.className = 'savebox warn';
+      box.innerHTML = '<b>모의 저장</b> · Supabase 미연결 — 아래 형태로 reports 에 insert 됩니다';
+    }
+    document.getElementById('jsonOut').textContent = JSON.stringify(result.row, null, 2);
+    document.getElementById('ovSub').classList.add('show');
+  });
+
+  // 모달 닫기
+  document.getElementById('closeSub').onclick = () => document.getElementById('ovSub').classList.remove('show');
+  document.getElementById('closeAdd').onclick = () => document.getElementById('ovAdd').classList.remove('show');
+  document.getElementById('copyJson').onclick = () => {
+    navigator.clipboard?.writeText(document.getElementById('jsonOut').textContent)
+      .then(() => toast('복사됨'), () => toast('복사 실패'));
+  };
+  ['ovSub','ovAdd'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
+    });
+  });
+</script>
+</body>
+</html>
