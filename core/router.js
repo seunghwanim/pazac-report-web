@@ -13,6 +13,7 @@ export function getParams() {
     type:   p.get('type')   || '',
     branch: p.get('branch') || '',
     date:   p.get('date')   || new Date().toISOString().slice(0, 10),
+    time:   p.get('time')   || new Date().toTimeString().slice(0, 5),
     author: p.get('author') || '',
   };
 }

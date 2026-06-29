@@ -19,7 +19,8 @@
     <div class="meta">
       <div class="fld"><label>지점</label><select id="branch"></select></div>
       <div class="fld"><label>보고일</label><input type="date" id="rdate"></div>
-      <div class="fld full"><label>작성자</label><input id="author" placeholder="작성자"></div>
+      <div class="fld"><label>보고 시간</label><input type="time" id="rtime"></div>
+      <div class="fld"><label>작성자</label><input id="author" placeholder="작성자"></div>
     </div>
   </div>
 
@@ -78,6 +79,7 @@
   });
   branchSel.value = params.branch;
   document.getElementById('rdate').value = params.date;
+  document.getElementById('rtime').value = params.time;
   document.getElementById('author').value = params.author;
 
   // 제출 바 표시
@@ -101,6 +103,7 @@
     const payload = mod.buildPayload({
       branch: branchSel.value,
       report_date: document.getElementById('rdate').value,
+      report_time: document.getElementById('rtime').value || null,
       shift_type: params.type,
       author: document.getElementById('author').value || null,
     });

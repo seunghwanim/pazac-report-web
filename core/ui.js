@@ -18,6 +18,9 @@ export function toast(msg) {
 export function bindTagInput(input, arr, renderFn) {
   input.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
+    // 한글 IME 조합 중(예: '시' 입력 중)에 발생하는 Enter는 무시.
+    // 조합 중 keydown까지 처리하면 조합 확정 후 keydown과 합쳐져 태그가 중복 추가됨.
+    if (e.isComposing || e.keyCode === 229) return;
     e.preventDefault();
     const v = e.target.value.trim();
     if (v && !arr.includes(v)) arr.push(v);

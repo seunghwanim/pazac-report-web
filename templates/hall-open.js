@@ -5,6 +5,7 @@ import { esc, bindTagInput, renderTags } from '../core/ui.js';
 
 let people = [];
 let checks = { upselling: null, review_bread: null };
+let upsellItems = [];
 let notes  = [];
 
 function renderPeople() {
@@ -32,12 +33,18 @@ function reRenderNotes() {
   renderTags(document.getElementById('hoNotesTags'), notes, i => { notes.splice(i,1); reRenderNotes(); });
 }
 
+function reRenderUpsell() {
+  renderTags(document.getElementById('hoUpsellTags'), upsellItems, i => { upsellItems.splice(i,1); reRenderUpsell(); });
+}
+
 export function init() {
   people = [{ name:'', roles:[] }];
   checks = { upselling:null, review_bread:null };
+  upsellItems = [];
   notes  = [];
   renderPeople();
   renderChecks();
+  reRenderUpsell();
 
   document.getElementById('hoPeople').addEventListener('click', e => {
     const t = e.target.closest('[data-act]'); if (!t) return;
@@ -68,6 +75,7 @@ export function init() {
     });
   });
 
+  bindTagInput(document.getElementById('hoUpsellInput'), upsellItems, reRenderUpsell);
   bindTagInput(document.getElementById('hoNotesInput'), notes, reRenderNotes);
 }
 
@@ -77,5 +85,5 @@ export function buildPayload(header) {
     position: pos,
     staff: ps.filter(p => p.roles.includes(pos)).map(p => p.name),
   }));
-  return { report:header, positions:ps, by_position:byPos, checks, general_notes:notes };
+  return { report:header, positions:ps, by_position:byPos, checks, upsell_items:upsellItems, general_notes:notes };
 }
