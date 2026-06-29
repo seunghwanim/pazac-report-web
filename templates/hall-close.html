@@ -2,7 +2,7 @@
 
 <div class="sect">
   <h3>발주 &amp; 재고 체크</h3>
-  <p class="hint">품목을 선택하면 단위가 자동으로 채워집니다. 직접 수정도 가능합니다.</p>
+  <p class="hint">품목을 선택하면 단위가 자동으로 채워집니다. 목록에 없으면 ‘✏️ 직접 입력’을 선택하세요.</p>
 
   <div class="grouplabel">음료 / 주류</div>
   <div id="hcBevRows"></div>
@@ -19,15 +19,15 @@
 </div>
 
 <div class="sect">
-  <h3>오픈조 할일</h3>
-  <p class="hint">Enter로 추가 — 내일 오픈조가 처리할 항목</p>
-  <div id="hcTasks"></div>
-  <input id="hcTaskInput" class="noteinput" type="text" placeholder="할일 입력 후 Enter">
-</div>
-
-<div class="sect">
   <h3>인수인계 및 특이사항</h3>
   <p class="hint">한 문장씩 입력하고 Enter로 추가</p>
   <div id="hcNotesList" class="notelist"></div>
   <input id="hcNotesInput" class="noteinput" type="text" placeholder="인수인계 문장 입력 후 Enter">
+</div>
+
+<div class="sect">
+  <h3>오픈조 체크리스트</h3>
+  <p class="hint">내일 오픈조가 할 일을 한 문장씩 Enter로 추가 (체크는 별도 페이지에서)</p>
+  <div id="hcChecklist" class="notelist"></div>
+  <input id="hcChecklistInput" class="noteinput" type="text" placeholder="체크리스트 문장 입력 후 Enter">
 </div>

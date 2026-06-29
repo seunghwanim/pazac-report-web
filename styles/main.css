@@ -127,6 +127,9 @@ textarea{width:100%; min-height:54px; border:1px solid var(--line2); border-radi
 .orow{display:grid; grid-template-columns:1.5fr .7fr .8fr auto; gap:6px; margin-bottom:7px; align-items:center}
 .orow input,.orow select{height:38px; border:1px solid var(--line2); border-radius:8px; padding:0 9px; background:var(--surface); width:100%; appearance:none; font-size:14px}
 .orow .x{border:none; background:none; color:var(--muted); font-size:16px; padding:4px}
+.itemcell{display:flex; gap:4px; min-width:0}
+.itemcell select,.itemcell input{flex:1; min-width:0}
+.itemcell .tolist{flex:none; width:34px; height:38px; border:1px solid var(--line2); border-radius:8px; background:var(--surface); color:var(--muted); font-size:13px; padding:0}
 .addinv{font-size:13px; color:var(--green-tx); background:var(--green-bg); border:1px solid #BFE3D3; border-radius:8px; height:34px; padding:0 12px; margin-top:2px}
 .checkrow{display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--line)}
 .checkrow:last-child{border-bottom:none}
