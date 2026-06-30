@@ -64,7 +64,11 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline
 .nonehint b{color:var(--ink)}
 .delitem{width:100%; height:38px; margin-top:12px; border:1px solid #E5C9C5; background:#FBF1EF; color:#9A3B30; border-radius:9px; font-size:13px; font-weight:500}
 
-/* ── 로트 ── */
+/* ── 생산분 ── */
+.lotshead{display:flex; align-items:center; justify-content:space-between; margin:11px 0 13px}
+.lotcount{font-size:12px; font-weight:700; color:var(--ink)}
+.nonebtn{border:1px solid var(--line2); background:var(--surface); color:var(--muted); font-size:11.5px; height:28px; padding:0 13px; border-radius:99px; font-weight:500}
+.nonebtn.on{border-color:var(--none); background:var(--none-bg); color:var(--none-tx); font-weight:600}
 .lot{border:1px solid var(--line2); border-radius:10px; padding:10px 11px; margin-bottom:8px}
 .lot .lh{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
 .lot .lh b{font-size:13px}
@@ -74,6 +78,23 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline
 .lf label{display:block; font-size:11px; color:var(--muted); margin-bottom:3px}
 .lf input{width:100%; height:36px; border:1px solid var(--line2); border-radius:8px; padding:0 9px; background:var(--surface)}
 .sub{font-size:11px; color:var(--muted); font-weight:600; margin:14px 0 7px}
+.agroup{font-size:12.5px; font-weight:700; color:var(--ink); margin:16px 0 6px; padding-bottom:5px; border-bottom:1px solid var(--line)}
+.agroup.final{color:var(--green-tx); border-color:var(--green)}
+.utag{font-size:10px; font-weight:600; color:var(--muted); background:#EEF1ED; padding:1px 6px; border-radius:99px; margin-left:3px}
+.scorelegend{display:flex; gap:8px 16px; flex-wrap:wrap; margin:9px 16px 2px; font-size:11px; color:var(--muted)}
+.scorelegend b{display:inline-block; color:var(--ink); padding:1px 7px; border-radius:99px; margin-right:5px; font-weight:700}
+.scorelegend span:first-child b{color:#8A5E29; background:#F6ECDB}   /* % = 편차(따뜻한 톤) */
+.scorelegend span:last-child  b{color:var(--green-tx); background:var(--green-bg)}  /* 점 = 점수(초록 톤) */
+
+/* %/점 구분: 직접입력 박스(타이핑 칸) 채우기 색만 유형별로 (편차=따뜻한 톤 / 점수=초록 톤) */
+.scoreblk{margin-bottom:11px}
+.scoreblk .sub{margin:0 0 7px}
+.utag.dev{color:#8A5E29; background:#F6ECDB}
+.utag.score{color:var(--green-tx); background:var(--green-bg)}
+.cond-row.dev .direct{background:#FAF1DE; border-color:#D9C09A}
+.cond-row.dev .direct.on{background:#F0E1C0; border-color:#B5863F}
+.cond-row.score .direct{background:#E4F2EC; border-color:#A3D3C0}
+.cond-row.score .direct.on{background:#CFEBDF; border-color:var(--green)}
 .cond-row{display:flex; gap:6px}
 .cond-row button{flex:1; height:36px; border:1px solid var(--line2); background:var(--surface); border-radius:8px; font-size:13px; color:var(--ink)}
 .cond-row button.on{border-color:var(--ink); background:var(--ink); color:#fff; font-weight:600}
