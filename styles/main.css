@@ -64,6 +64,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); outline
 .nonehint b{color:var(--ink)}
 .delitem{width:100%; height:38px; margin-top:12px; border:1px solid #E5C9C5; background:#FBF1EF; color:#9A3B30; border-radius:9px; font-size:13px; font-weight:500}
 
+/* ── 주방 마감 ── */
+.doughtotal{text-align:right; font-size:13px; font-weight:700; color:var(--ink); margin-top:9px}
+.agedcard{border:1px solid var(--line2); border-radius:10px; padding:9px 10px; margin-bottom:8px}
+
 /* ── 생산분 ── */
 .lotshead{display:flex; align-items:center; justify-content:space-between; margin:11px 0 13px}
 .lotcount{font-size:12px; font-weight:700; color:var(--ink)}

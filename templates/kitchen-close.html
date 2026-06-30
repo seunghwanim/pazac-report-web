@@ -1,4 +1,60 @@
-<!-- templates/kitchen-close.html — 준비 중 -->
-<div style="padding:40px 16px; text-align:center; color:var(--muted); font-size:14px; line-height:1.7">
-  주방 마감 양식은 준비 중입니다.<br>항목 리스트를 주시면 동일 방식으로 추가합니다.
+<!-- templates/kitchen-close.html — 주방 마감(BOH) 보고 마크업 (로직은 kitchen-close.js) -->
+
+<div class="sect">
+  <h3>금일 도우 재고</h3>
+  <p class="hint">생산일별로 추가하세요. 총 판수는 자동 합산됩니다.</p>
+  <div id="kcDoughRows"></div>
+  <button class="addinv" id="kcAddDough">＋ 생산일 추가</button>
+  <div class="doughtotal" id="kcDoughTotal">총 0판</div>
+</div>
+
+<div class="sect">
+  <h3>내일 프랩</h3>
+  <p class="hint">우선순위별로 한 줄씩 Enter로 추가</p>
+
+  <div class="sub">① 꼭 해야 할 우선 프랩</div>
+  <div id="kcMustList" class="notelist"></div>
+  <input id="kcMustInput" class="noteinput" type="text" placeholder="우선 프랩 입력 후 Enter">
+
+  <div class="sub">② 그날 해야 하는 프랩</div>
+  <div id="kcDayList" class="notelist"></div>
+  <input id="kcDayInput" class="noteinput" type="text" placeholder="그날 프랩 입력 후 Enter">
+
+  <div class="sub">③ 추가로 하면 좋은 프랩</div>
+  <div id="kcExtraList" class="notelist"></div>
+  <input id="kcExtraInput" class="noteinput" type="text" placeholder="추가 프랩 입력 후 Enter">
+</div>
+
+<div class="sect">
+  <h3>오늘 추가로 진행한 프랩</h3>
+  <p class="hint">프랩 목록엔 없었지만 실제로 필요해서 진행한 것을 기록</p>
+  <div id="kcTodayList" class="notelist"></div>
+  <input id="kcTodayInput" class="noteinput" type="text" placeholder="오늘 추가 진행한 프랩 입력 후 Enter">
+</div>
+
+<div class="sect">
+  <h3>해동품</h3>
+  <p class="hint">품목 추가 후 수량·단위를 입력하세요.</p>
+
+  <div class="grouplabel">오늘 해동 넣어둔 것</div>
+  <div id="kcThawNowRows"></div>
+  <button class="addinv" id="kcAddThawNow">＋ 품목 추가</button>
+
+  <div class="grouplabel">내일 출근 후 해동할 것</div>
+  <div id="kcThawNextRows"></div>
+  <button class="addinv" id="kcAddThawNext">＋ 품목 추가</button>
+</div>
+
+<div class="sect">
+  <h3>3일 지난 프랩 재료</h3>
+  <p class="hint">3일 지난 재료 중 남은 것의 처리 계획(어떻게 쓸지)을 적어주세요.</p>
+  <div id="kcAgedRows"></div>
+  <button class="addinv" id="kcAddAged">＋ 품목 추가</button>
+</div>
+
+<div class="sect">
+  <h3>특이사항</h3>
+  <p class="hint">한 문장씩 입력하고 Enter로 추가</p>
+  <div id="kcNotesList" class="notelist"></div>
+  <input id="kcNotesInput" class="noteinput" type="text" placeholder="특이사항 문장 입력 후 Enter">
 </div>
